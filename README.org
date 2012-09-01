@@ -1,8 +1,9 @@
 RASE - Run At Sun Event
 
 This is an Emacs extension that allows user provided set of functions
-to be run at some sun events, right now - sunrise and sunset.  It's
-inspired by some settings found in Jiri Linkov's .emacs.
+to be run at some sun events, right now - sunrise and sunset.
+
+It's inspired by some settings found in Juri Linkov's .emacs.
 
 The solar built-in package is used, so calendar-latitude and
 calendar-longitude variables need to be set to appropriate location.
