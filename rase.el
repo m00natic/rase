@@ -85,7 +85,7 @@ If JUST-TIMER is non-nil, don't execute hook now."
 			   (car (cadr solar-info))
 			   (cadr (cadr solar-info)))))
       (rase-set-timer 'sunset sunset-string)))
-   ((eq even 'sunset)
+   ((eq event 'sunset)
     (or just-timer (rase-run-hooks 'sunset))
     (let* ((tomorrow (calendar-current-date 1))
 	   (solar-rise (car (solar-sunrise-sunset tomorrow)))
