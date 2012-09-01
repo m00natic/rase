@@ -21,7 +21,7 @@ Usage example:
 	 (enable-theme 'wombat))))
 
 ;; sign this function to be invoked on sun events
-(add-to-list rase-hook 'switch-themes)
+(add-to-list 'rase-hook 'switch-themes)
 
 ;; start the run-at-sun-event daemon
 (rase-start t)
