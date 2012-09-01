@@ -30,7 +30,7 @@
 ;;  '(calendar-latitude 42.68)
 ;;  '(calendar-longitude 23.31))
 ;;
-;; create an one argument function to be invoked at sun events, like
+;; create an one-argument function to be invoked at sun events, like
 ;; (defun switch-themes (sun-event)
 ;;   (cond ((eq sun-event 'sunrise)
 ;;	 ...set ligthish theme...)
