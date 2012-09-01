@@ -20,6 +20,22 @@
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+;; This is an Emacs extension that allows user provided set of
+;; functions to be run at some sun events.
+
+;;; Usage:
+;; create a one argument function to be invoked at sun events, like
+;; (defun switch-themes (sun-event)
+;;   (cond ((eq sun-event 'sunrise)
+;;	 ...set ligthish theme...)
+;;	((eq sun-event 'sunset)
+;;	 ...set darkish theme...)))
+
+;; sign this function to be invoked on sun events
+;; (add-to-list rase-hook 'switch-themes)
+
+;; start the run-at-sun-event daemon
+;; (rase-start t)
 
 ;;; Code:
 
