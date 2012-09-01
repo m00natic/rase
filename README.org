@@ -26,12 +26,10 @@ Usage example:
 (defun switch-themes (sun-event)
   "Switch themes on sunrise and sunset."
   (cond ((eq sun-event 'sunrise)
-	 (ignore-errors
-	   (disable-theme 'wombat))
+	 (disable-theme 'wombat)
 	 (enable-theme 'whiteboard))
 	((eq sun-event 'sunset)
-	 (ignore-errors
-	   (disable-theme 'whiteboard))
+	 (disable-theme 'whiteboard)
 	 (enable-theme 'wombat))))
 
 ;; sign this function to be invoked on sun events

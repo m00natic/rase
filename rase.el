@@ -33,9 +33,11 @@
 ;; create an one-argument function to be invoked at sun events, like
 ;; (defun switch-themes (sun-event)
 ;;   (cond ((eq sun-event 'sunrise)
-;;	 ...set ligthish theme...)
-;;	((eq sun-event 'sunset)
-;;	 ...set darkish theme...)))
+;; 	 ;; ...set ligthish theme...
+;; 	 )
+;; 	((eq sun-event 'sunset)
+;; 	 ;; ...set darkish theme...
+;; 	 )))
 ;;
 ;; sign this function to be invoked on sun events
 ;; (add-to-list rase-hook 'switch-themes)
