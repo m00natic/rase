@@ -3,7 +3,6 @@
 
 ;; Author   : Andrey Kotlarski <m00naticus@gmail.com>
 ;; URL      : https://github.com/m00natic/rase/
-;; Version  : 0.1
 ;; Keywords : solar, sunrise, sunset
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
@@ -27,17 +26,23 @@
 ;; the `solar' built-in package is used
 ;; these variables must be set
 ;; (custom-set-variables
-;;  '(calendar-latitude 42.68)
-;;  '(calendar-longitude 23.31))
+;;  '(calendar-latitude 42.7)
+;;  '(calendar-longitude 23.3))
 ;;
 ;; create an one-argument function to be invoked at sun events, like
 ;; (defun switch-themes (sun-event)
 ;;   (cond ((eq sun-event 'sunrise)
-;; 	 ;; ...set ligthish theme...
-;; 	 )
-;; 	((eq sun-event 'sunset)
-;; 	 ;; ...set darkish theme...
-;; 	 )))
+;;	 ;; ...set lightish theme...
+;;	 )
+;;	((eq sun-event 'sunset)
+;;	 ;; ...set darkish theme...
+;;	 )
+;;	((eq sun-event 'midday)
+;;	 ;; ...lunch...
+;;	 )
+;;	((eq sun-event 'midnight)
+;;	 ;; ...howl...
+;;	 )))
 ;;
 ;; sign this function to be invoked on sun events
 ;; (add-to-list rase-hook 'switch-themes)
@@ -51,84 +56,116 @@
 
 ;;;###autoload
 (defcustom rase-hook nil
-  "List of one argument functions to run at sun event."
+  "List of one-argument functions to run at sun event.
+Possible values for the argument are the symbols
+`sunrise', `midday', `sunrise' and `midnight'."
   :group 'rase :type 'list)
 
 (defvar *rase-timer* nil
   "Timer for the next sun event.")
-
-(defmacro rase-set-timer (event time)
-  "Set timer for sun EVENT at TIME."
-  `(setq *rase-timer* (run-at-time ,time nil 'rase-daemon ,event)))
 
 (defun rase-run-hooks (event)
   "Run `rase-hook' functions for the current sun EVENT."
   (mapc (lambda (hook) (funcall hook event))
 	rase-hook))
 
-(defun rase-solar-time-to-24 (time-str)
-  "Convert solar type string TIME-STR to 24 hour format."
-  (if (string-match "\\(.*\\)[/:-]\\(..\\)\\(.\\)" time-str)
-      (format "%02d:%s"
-	      (if (string-equal (match-string 3 time-str) "p")
-		  (+ 12 (string-to-number (match-string 1 time-str)))
-		(string-to-number (match-string 1 time-str)))
-	      (match-string 2 time-str))
-    time-str))
+(defun rase-set-timer (event time &optional tomorrow)
+  "Set timer for sun EVENT at TIME.
+If TOMORROW is non-nil, schedule it for the next day."
+  (let ((time-normalize (round (* 60 time)))
+	(date (calendar-current-date (if tomorrow 1))))
+    (setq *rase-timer*
+	  (run-at-time (encode-time 0 (% time-normalize 60)
+				    (/ time-normalize 60)
+				    (cadr date) (car date)
+				    (nth 2 date))
+		       nil 'rase-daemon event))))
 
-(defun rase-daemon (event &optional just-timer)
-  "Execute `rase-hook' for EVENT and set timer for the next sun event.
-If JUST-TIMER is non-nil, don't execute hook now."
-  (cond
-   ((eq event 'sunrise)
-    (or just-timer (rase-run-hooks 'sunrise))
-    (let* ((solar-info (solar-sunrise-sunset (calendar-current-date)))
-	   (sunset-string (solar-time-string
-			   (car (cadr solar-info))
-			   (cadr (cadr solar-info)))))
-      (rase-set-timer 'sunset sunset-string)))
-   ((eq event 'sunset)
-    (or just-timer (rase-run-hooks 'sunset))
-    (let* ((tomorrow (calendar-current-date 1))
-	   (solar-rise (car (solar-sunrise-sunset tomorrow)))
-	   (sunrise (rase-solar-time-to-24 (solar-time-string
-					    (car solar-rise)
-					    (cadr solar-rise)))))
-      (rase-set-timer 'sunrise
-		      (encode-time 0 (string-to-number
-				      (substring sunrise 3 5))
-				   (string-to-number
-				    (substring sunrise 0 2))
-				   (cadr tomorrow) (car tomorrow)
-				   (car (cddr tomorrow))))))))
+(defun rase-daemon (event)
+  "Execute `rase-hook' for EVENT and set timer the next sun event."
+  (rase-run-hooks event)
+  (let ((solar-info (solar-sunrise-sunset (calendar-current-date))))
+    (let ((sunrise (car solar-info))
+	  (sunset (cadr solar-info)))
+      (cond
+       ((not sunset)
+	(if (eq event 'sunrise)
+	    (rase-set-timer 'midday 12)
+	  (rase-set-timer 'sunrise 0 t)))
+       ((not sunrise)
+	(if (eq event 'sunset)
+	    (rase-set-timer 'midnight 12)
+	  (rase-set-timer 'sunset 0 t)))
+       (t (let* ((sunrise (car sunrise))
+		 (sunset (car sunset))
+		 (midday (+ sunrise (/ (- sunset sunrise) 2)))
+		 (early-midnight (< midday 12))
+		 (midnight (+ midday (if early-midnight 12 -12))))
+	    (cond ((eq event 'midnight)
+		   (rase-set-timer 'sunrise sunrise early-midnight))
+		  ((eq event 'sunrise)
+		   (rase-set-timer 'midday midday))
+		  ((eq event 'midday)
+		   (rase-set-timer 'sunset sunset))
+		  ((eq event 'sunset)
+		   (rase-set-timer 'midnight midnight
+				   (not early-midnight))))))))))
 
 ;;;###autoload
 (defun rase-start (&optional immediately)
   "Start run-at-sun-event daemon.  If IMMEDIATELY is non-nil,\
 execute hooks for the previous event."
-  (let ((solar-info (solar-sunrise-sunset (calendar-current-date))))
-    (let ((sunrise-string (solar-time-string (caar solar-info)
-					     (car (cdar solar-info))))
-	  (sunset-string (solar-time-string (car (cadr solar-info))
-					    (cadr (cadr solar-info))))
-	  (current-time-string (format-time-string "%H:%M")))
-      (cond ((string-lessp current-time-string ; before dawn
-			   (rase-solar-time-to-24 sunrise-string))
-	     (if immediately
-		 (rase-run-hooks 'sunset))
-	     (rase-set-timer 'sunrise sunrise-string))
-	    ((string-lessp current-time-string ; daytime
-			   (rase-solar-time-to-24 sunset-string))
-	     (if immediately
-		 (rase-run-hooks 'sunrise))
-	     (rase-set-timer 'sunset sunset-string))
-	    (t (rase-daemon 'sunset (not immediately))))))) ; evening
+  (let ((solar-info (solar-sunrise-sunset (calendar-current-date)))
+	(current-time (decode-time (current-time))))
+    (let ((sunrise (car solar-info))
+	  (sunset (cadr solar-info)))
+      (cond
+       ((not sunset)
+	(if (< current-time 12)
+	    (progn (if immediately (rase-run-hooks 'sunrise))
+		   (rase-set-timer 'midday 12))
+	  (if immediately (rase-run-hooks 'midday))
+	  (rase-set-timer 'sunrise 0 t)))
+       ((not sunrise)
+	(if (< current-time 12)
+	    (progn (if immediately (rase-run-hooks 'sunset))
+		   (rase-set-timer 'midnight 12))
+	  (if immediately (rase-run-hooks 'midnight))
+	  (rase-set-timer 'sunset 0 t)))
+       (t (let* ((sunrise (car sunrise))
+		 (sunset (car sunset))
+		 (midday (+ sunrise (/ (- sunset sunrise) 2)))
+		 (early-midnight (< midday 12))
+		 (midnight (+ midday (if early-midnight 12 -12)))
+		 (current-time (/ (+ (* 60 (nth 2 current-time))
+				     (cadr current-time))
+				  60.0)))
+	    (if (< current-time midday)
+		(cond ((< sunrise current-time)
+		       (if immediately (rase-run-hooks 'sunrise))
+		       (rase-set-timer 'midday midday))
+		      ((and (not early-midnight)
+			    (< current-time midnight))
+		       (if immediately (rase-run-hooks 'sunset))
+		       (rase-set-timer 'midnight midnight))
+		      (t (if immediately (rase-run-hooks 'midnight))
+			 (rase-set-timer 'sunrise sunrise)))
+	      (cond ((< current-time sunset)
+		     (if immediately (rase-run-hooks 'midday))
+		     (rase-set-timer 'sunset sunset))
+		    ((and early-midnight (< midnight current-time))
+		     (if immediately (rase-run-hooks 'midnight))
+		     (rase-set-timer 'sunrise sunrise t))
+		    (t (if immediately (rase-run-hooks 'sunset))
+		       (rase-set-timer 'midnight midnight
+				       (not early-midnight)))))))))))
 
 ;;;###autoload
 (defun rase-stop ()
   "Stop the run-at-sun-event daemon."
   (when *rase-timer*
-    (cancel-timer *rase-timer*)
+    (if (timerp *rase-timer*)
+	(cancel-timer *rase-timer*))
     (setq *rase-timer* nil)))
 
 (provide 'rase)
