@@ -1,12 +1,12 @@
 RASE - Run At Sun Event
 
 This is an Emacs extension that allows user provided set of functions
-to be run at some sun events - sunrise, midday, sunset and midnight.
+to run at some sun events - sunrise, midday, sunset and midnight.
 
 It's inspired by some settings found in Juri Linkov's .emacs.
 
 The solar built-in package is used and the calendar-latitude and
-calendar-longitude variables need to be set to appropriate location.
+calendar-longitude variables must be set to appropriate location.
 
 Usage example:
 
@@ -22,8 +22,8 @@ Usage example:
 (load-theme 'whiteboard t t)
 (load-theme 'wombat t t)
 
-;; create an one-argument function to be invoked at sun events
-(defun switch-themes (sun-event)
+;; create a two-argument function to be invoked at sun events
+(defun switch-themes (sun-event first-run)
   "Switch themes on sunrise and sunset."
   (cond ((memq sun-event '(sunrise midday))
 	 (disable-theme 'wombat)
