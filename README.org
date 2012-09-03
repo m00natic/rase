@@ -25,17 +25,24 @@ Usage example:
 ;; create a two-argument function to be invoked at sun events
 (defun switch-themes (sun-event first-run)
   "Switch themes on sunrise and sunset."
-  (cond ((memq sun-event '(sunrise midday))
-	 (disable-theme 'wombat)
-	 (enable-theme 'whiteboard))
-	((memq sun-event '(sunset midnight))
-	 (disable-theme 'whiteboard)
-	 (enable-theme 'wombat))))
+  (if first-run
+      (cond ((memq sun-event '(sunrise midday))
+	     (disable-theme 'wombat)
+	     (enable-theme 'whiteboard))
+	    ((memq sun-event '(sunset midnight))
+	     (disable-theme 'whiteboard)
+	     (enable-theme 'wombat)))
+    (cond ((eq sun-event 'sunrise)
+	   (disable-theme 'wombat)
+	   (enable-theme 'whiteboard))
+	  ((eq sun-event 'sunset)
+	   (disable-theme 'whiteboard)
+	   (enable-theme 'wombat)))))
 
 ;; sign this function to be invoked on sun events
 (add-to-list 'rase-hook 'switch-themes)
 
-;; start the run-at-sun-event daemon
+;; start the run-at-sun-event daemon, invoking hooks immediately
 (rase-start t)
 
 ;; you can stop it like this
