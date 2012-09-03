@@ -131,23 +131,38 @@ If TOMORROW is non-nil, schedule it for the next day."
 	(rase-set-timer (car next) (cdr next))
       (rase-set-timer (car first) (cdr first) t))))
 
+(defmacro rase-alternate-polar-event (event main mid)
+  "Using current EVENT, alternate between MAIN and MID polar events."
+  `(if (eq ,event ',main)
+       (rase-set-timer ',mid 12)
+     (rase-set-timer ',main 0 t)))
+
 (defun rase-daemon (event)
   "Execute `rase-hook' for EVENT and set timer the next sun event."
   (rase-run-hooks event)
   (let ((solar-info (solar-sunrise-sunset (calendar-current-date))))
     (let ((sunrise (car solar-info))
 	  (sunset (cadr solar-info)))
-      (cond ((not sunset)			; polar day
-	     (if (eq event 'sunrise)
-		 (rase-set-timer 'midday 12)
-	       (rase-set-timer 'sunrise 0 t)))
-	    ((not sunrise)			; polar night
-	     (if (eq event 'sunset)
-		 (rase-set-timer 'midnight 12)
-	       (rase-set-timer 'sunset 0 t)))
+      (cond ((and (not sunset) (not sunrise))
+	     (if (string-equal (nth 2 solar-info) "24:00")
+		 (rase-alternate-polar-event event sunrise midday)
+	       (rase-alternate-polar-event event 'sunset 'midnight)))
+	    ((not sunset)		; polar day
+	     (rase-alternate-polar-event event 'sunrise 'midday))
+	    ((not sunrise)		; polar night
+	     (rase-alternate-polar-event event 'sunset 'midnight))
 	    (t (rase-set-next-timer
 		event (rase-build-event-list (car sunrise)
 					     (car sunset))))))))
+
+(defmacro rase-alternate-polar-event-time (time main mid immediately)
+  "Using current TIME, alternate between MAIN and MID polar events.
+If IMMEDIATELY is non-nil, execute hooks for the previous event."
+  `(if (< ,time 12)
+       (progn (if ,immediately (rase-run-hooks ',main t))
+	      (rase-set-timer ',mid 12))
+     (if ,immediately (rase-run-hooks ',mid t))
+     (rase-set-timer ',main 0 t)))
 
 ;;;###autoload
 (defun rase-start (&optional immediately)
@@ -158,18 +173,20 @@ execute hooks for the previous event."
     (let ((sunrise (car solar-info))
 	  (sunset (cadr solar-info)))
       (cond
-       ((not sunset)			; polar day
-	(if (< (nth 2 current-time) 12)
-	    (progn (if immediately (rase-run-hooks 'sunrise t))
-		   (rase-set-timer 'midday 12))
-	  (if immediately (rase-run-hooks 'midday t))
-	  (rase-set-timer 'sunrise 0 t)))
-       ((not sunrise)			; polar night
-	(if (< (nth 2 current-time) 12)
-	    (progn (if immediately (rase-run-hooks 'sunset t))
-		   (rase-set-timer 'midnight 12))
-	  (if immediately (rase-run-hooks 'midnight t))
-	  (rase-set-timer 'sunset 0 t)))
+       ((and (not sunset) (not sunrise))
+	(if (string-equal (nth 2 solar-info) "24:00")
+	    (rase-alternate-polar-event-time (nth 2 current-time)
+					     sunrise midday
+					     immediately)
+	  (rase-alternate-polar-event-time (nth 2 current-time)
+					   sunset midnight
+					   immediately)))
+       ((not sunset)		; polar day
+	(rase-alternate-polar-event-time (nth 2 current-time)
+					 sunrise midday immediately))
+       ((not sunrise)		; polar night
+	(rase-alternate-polar-event-time (nth 2 current-time)
+					 sunset midnight immediately))
        (t (let* ((event-list (rase-build-event-list (car sunrise)
 						    (car sunset)))
 		 (current-time (/ (+ (* 60 (nth 2 current-time))
