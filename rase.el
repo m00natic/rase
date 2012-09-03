@@ -3,6 +3,7 @@
 
 ;; Author   : Andrey Kotlarski <m00naticus@gmail.com>
 ;; URL      : https://github.com/m00natic/rase/
+;; Version  : 1.0
 ;; Keywords : solar, sunrise, sunset, midday, midnight
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
@@ -181,10 +182,10 @@ execute hooks for the previous event."
 	  (rase-alternate-polar-event-time (nth 2 current-time)
 					   sunset midnight
 					   immediately)))
-       ((not sunset)		; polar day
+       ((not sunset)			; polar day
 	(rase-alternate-polar-event-time (nth 2 current-time)
 					 sunrise midday immediately))
-       ((not sunrise)		; polar night
+       ((not sunrise)			; polar night
 	(rase-alternate-polar-event-time (nth 2 current-time)
 					 sunset midnight immediately))
        (t (let* ((event-list (rase-build-event-list (car sunrise)
