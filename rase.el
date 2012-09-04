@@ -148,9 +148,9 @@ If TOMORROW is non-nil, schedule it for the next day."
 	     (if (string-equal (nth 2 solar-info) "24:00")
 		 (rase-alternate-polar-event event sunrise midday)
 	       (rase-alternate-polar-event event 'sunset 'midnight)))
-	    ((not sunset)		; polar day
+	    ((not sunset)		; polar day transition
 	     (rase-alternate-polar-event event 'sunrise 'midday))
-	    ((not sunrise)		; polar night
+	    ((not sunrise)		; polar night transition
 	     (rase-alternate-polar-event event 'sunset 'midnight))
 	    (t (rase-set-next-timer
 		event (rase-build-event-list (car sunrise)
@@ -165,10 +165,15 @@ If IMMEDIATELY is non-nil, execute hooks for the previous event."
      (if ,immediately (rase-run-hooks ',mid t))
      (rase-set-timer ',main 0 t)))
 
+(defmacro rase-decode-time-hour (time)
+  "Get hour from TIME as returned by `decode-time'."
+  `(nth 2 ,time))
+
 ;;;###autoload
 (defun rase-start (&optional immediately)
-  "Start run-at-sun-event daemon.  If IMMEDIATELY is non-nil,\
+  "Start run-at-sun-event daemon.  If IMMEDIATELY is non-nil, \
 execute hooks for the previous event."
+  (rase-stop)
   (let ((solar-info (solar-sunrise-sunset (calendar-current-date)))
 	(current-time (decode-time (current-time))))
     (let ((sunrise (car solar-info))
@@ -176,23 +181,26 @@ execute hooks for the previous event."
       (cond
        ((and (not sunset) (not sunrise))
 	(if (string-equal (nth 2 solar-info) "24:00")
-	    (rase-alternate-polar-event-time (nth 2 current-time)
-					     sunrise midday
-					     immediately)
-	  (rase-alternate-polar-event-time (nth 2 current-time)
-					   sunset midnight
-					   immediately)))
-       ((not sunset)			; polar day
-	(rase-alternate-polar-event-time (nth 2 current-time)
-					 sunrise midday immediately))
-       ((not sunrise)			; polar night
-	(rase-alternate-polar-event-time (nth 2 current-time)
-					 sunset midnight immediately))
+	    (rase-alternate-polar-event-time ; polar day
+	     (rase-decode-time-hour current-time)
+	     sunrise midday immediately)
+	  (rase-alternate-polar-event-time ; polar night
+	   (rase-decode-time-hour current-time)
+	   sunset midnight immediately)))
+       ((not sunset)			; polar day transition
+	(rase-alternate-polar-event-time
+	 (rase-decode-time-hour current-time)
+	 sunrise midday immediately))
+       ((not sunrise)			; polar night transition
+	(rase-alternate-polar-event-time
+	 (rase-decode-time-hour current-time)
+	 sunset midnight immediately))
        (t (let* ((event-list (rase-build-event-list (car sunrise)
 						    (car sunset)))
-		 (current-time (/ (+ (* 60 (nth 2 current-time))
-				     (cadr current-time))
-				  60.0))
+		 (current-time
+		  (/ (+ (* 60 (rase-decode-time-hour current-time))
+			(cadr current-time))
+		     60.0))
 		 (current-event (caar (last event-list))))
 	    (catch 'found
 	      (dolist (event-info event-list)
@@ -202,7 +210,6 @@ execute hooks for the previous event."
 	    (if immediately (rase-run-hooks current-event t))
 	    (rase-set-next-timer current-event event-list)))))))
 
-;;;###autoload
 (defun rase-stop ()
   "Stop the run-at-sun-event daemon."
   (when *rase-timer*
