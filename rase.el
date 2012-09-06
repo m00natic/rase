@@ -107,45 +107,45 @@ If TOMORROW is non-nil, schedule it for the next day."
 
 (defun rase-build-event-list (&optional offset)
   "Build ordered list of sun events using for current day + OFFSET."
-  (let ((solar-info (solar-sunrise-sunset
-		     (calendar-current-date offset))))
-    (let ((sunrise (car solar-info))
-	  (sunset (cadr solar-info)))
-      (cond ((not (or sunrise sunset))
-	     (if (char-equal (string-to-char (nth 2 solar-info)) ?2)
-		 '((sunrise . 0) (midday . 12))  ; polar day
-	       '((sunset . 0) (midnight . 12)))) ; polar night
-	    ((not sunset)
-	     (let ((midnight (/ sunrise 2.0)))
-	       (list (cons 'midnight midnight) (cons 'sunrise sunrise)
-		     (cons 'midday (+ midnight 12)))))
-	    ((not sunrise)
-	     (let ((midday (/ sunset 2.0)))
-	       (list (cons 'midday midday) (cons 'sunset sunset)
-		     (cons 'midnight (+ midday 12)))))
-	    (t (let* ((sunrise (car sunrise))
-		      (sunset (car sunset))
-		      (early-sunset (< sunset sunrise))
-		      (mid (+ (min sunrise sunset)
-			      (/ (abs (- sunset sunrise)) 2.0)))
-		      (anti-mid (+ mid (if (< mid 12) 12 -12))))
-		 (rase-insert-event 'sunrise sunrise
-				    (rase-insert-event
-				     'sunset sunset
-				     (rase-insert-event
-				      (if early-sunset 'midnight
-					'midday)
-				      mid
-				      (list (cons (if early-sunset
-						      'midday
-						    'midnight)
-						  anti-mid)))))))))))
+  (let* ((solar-info (solar-sunrise-sunset
+		      (calendar-current-date offset)))
+	 (sunrise (car solar-info))
+	 (sunset (cadr solar-info)))
+    (cond ((not (or sunrise sunset))
+	   (if (char-equal (string-to-char (nth 2 solar-info)) ?2)
+	       '((sunrise . 0) (midday . 12))  ; polar day
+	     '((sunset . 0) (midnight . 12)))) ; polar night
+	  ((not sunset)
+	   (let ((midnight (/ sunrise 2.0)))
+	     (list (cons 'midnight midnight) (cons 'sunrise sunrise)
+		   (cons 'midday (+ midnight 12)))))
+	  ((not sunrise)
+	   (let ((midday (/ sunset 2.0)))
+	     (list (cons 'midday midday) (cons 'sunset sunset)
+		   (cons 'midnight (+ midday 12)))))
+	  (t (let* ((sunrise (car sunrise))
+		    (sunset (car sunset))
+		    (early-sunset (< sunset sunrise))
+		    (mid (+ (min sunrise sunset)
+			    (/ (abs (- sunset sunrise)) 2.0)))
+		    (anti-mid (+ mid (if (< mid 12) 12 -12))))
+	       (rase-insert-event 'sunrise sunrise
+				  (rase-insert-event
+				   'sunset sunset
+				   (rase-insert-event
+				    (if early-sunset 'midnight
+				      'midday)
+				    mid
+				    (list (cons (if early-sunset
+						    'midday
+						  'midnight)
+						anti-mid))))))))))
 
 (defun rase-daemon (event &optional event-list no-hooks)
   "Execute `rase-hook' for EVENT and set timer the next sun event.
 EVENT-LIST holds the next events for the current day.
 If NO-HOOKS is given, don't run hooks for current event."
-  (if (not no-hooks) (rase-run-hooks event))
+  (or no-hooks (rase-run-hooks event))
   (if event-list			; reuse event-list
       (rase-set-timer (caar event-list) (cdar event-list)
 		      (cdr event-list))
@@ -167,11 +167,11 @@ execute hooks for the previous event."
       (while (and event-list (< (cdar event-list) current-time))
 	(setq last-event (caar event-list)
 	      event-list (cdr event-list)))
-      (if (not event-list)
-	  (rase-daemon last-event nil (not immediately))
-	(if immediately (rase-run-hooks last-event t))
-	(rase-set-timer (caar event-list) (cdar event-list)
-			(cdr event-list))))))
+      (if immediately (rase-run-hooks last-event t))
+      (if event-list
+	  (rase-set-timer (caar event-list) (cdar event-list)
+			  (cdr event-list))
+	(rase-daemon last-event nil t)))))
 
 (defun rase-stop ()
   "Stop the run-at-sun-event daemon."
