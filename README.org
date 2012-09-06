@@ -1,7 +1,8 @@
 * RASE - Run At Sun Event daemon
 
 This is an Emacs extension that allows user provided set of functions
-to run at some sun events - sunrise, midday, sunset and midnight.
+to run at some sun events - sunrise, midday (sun is at highest point
+for current coordinates), sunset and midnight (sun at lowest).
 
 It's inspired by some settings found in Juri Linkov's .emacs.
 

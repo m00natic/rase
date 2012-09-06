@@ -106,7 +106,7 @@ If TOMORROW is non-nil, schedule it for the next day."
       (nconc result-list (list (cons event time))))))
 
 (defun rase-build-event-list (&optional offset)
-  "Build ordered list of sun events using for current day + OFFSET."
+  "Build ordered list of sun events for current day + OFFSET."
   (let* ((solar-info (solar-sunrise-sunset
 		      (calendar-current-date offset)))
 	 (sunrise (car solar-info))
