@@ -24,12 +24,12 @@
 ;; functions to be run at some sun events.
 
 ;;; Usage:
-;; the `solar' built-in package is used, these variables must be set:
+;; ;; the `solar' built-in package is used, these variables must be set:
 ;; (custom-set-variables
 ;;  '(calendar-latitude 42.7)
 ;;  '(calendar-longitude 23.3))
-;;
-;; create a two-argument function to be invoked at sun events, like
+
+;; ;; create a two-argument function to be invoked at sun events, like
 ;; (defun switch-themes (sun-event first-run)
 ;;   (cond ((eq sun-event 'sunrise)
 ;;	 ;; ...set lightish theme...
@@ -49,11 +49,11 @@
 ;;	   )
 ;;	 ;; ...howl...
 ;;	 )))
-;;
-;; sign this function to be invoked on sun events
+
+;; ;; sign this function to be invoked on sun events
 ;; (add-to-list rase-hook 'switch-themes)
-;;
-;; start the run-at-sun-event daemon, invoking hooks immediately
+
+;; ;; start the run-at-sun-event daemon, invoking hooks immediately
 ;; (rase-start t)
 
 ;;; Code:
@@ -65,7 +65,8 @@
   "List of two-argument functions to run at sun event.
 Possible values for the first argument are the symbols
 `sunrise', `midday', `sunrise' and `midnight'.
-The second argument is non-nil only the very start of rase daemon."
+The second argument is non-nil only the very start of rase daemon.
+If it's a list, it holds the previous events for the day."
   :group 'rase :type 'list)
 
 (defvar *rase-timer* nil
@@ -77,12 +78,11 @@ FIRST-RUN indicates if this is the very start of the rase daemon."
   (mapc (lambda (hook) (funcall hook event first-run))
 	rase-hook))
 
-(defun rase-set-timer (event time &optional event-list tomorrow)
+(defun rase-set-timer (event time &optional event-list offset)
   "Set timer for sun EVENT at TIME.
-EVENT-LIST holds the next events for the current day.
-If TOMORROW is non-nil, schedule it for the next day."
+EVENT-LIST holds the next events for the current day + OFFSET."
   (let ((time-normalize (round (* 60 time)))
-	(date (calendar-current-date (if tomorrow 1))))
+	(date (calendar-current-date offset)))
     (setq *rase-timer*
 	  (run-at-time (encode-time 0 (% time-normalize 60)
 				    (/ time-normalize 60)
@@ -142,16 +142,16 @@ If TOMORROW is non-nil, schedule it for the next day."
 						anti-mid))))))))))
 
 (defun rase-daemon (event &optional event-list no-hooks)
-  "Execute `rase-hook' for EVENT and set timer the next sun event.
+  "Execute `rase-hook' for EVENT and set timer for the next sun event.
 EVENT-LIST holds the next events for the current day.
 If NO-HOOKS is given, don't run hooks for current event."
   (or no-hooks (rase-run-hooks event))
-  (if event-list			; reuse event-list
+  (if event-list
       (rase-set-timer (caar event-list) (cdar event-list)
 		      (cdr event-list))
     (setq event-list (rase-build-event-list 1))	; get next day events
     (rase-set-timer (caar event-list) (cdar event-list)
-		    (cdr event-list) t)))
+		    (cdr event-list) 1)))
 
 ;;;###autoload
 (defun rase-start (&optional immediately)
@@ -160,14 +160,21 @@ execute hooks for the previous event."
   (rase-stop)
   (let ((event-list (rase-build-event-list))
 	(current-time (decode-time (current-time))))
-    (let ((last-event (caar (last event-list)))
-	  (current-time (/ (+ (* 60 (nth 2 current-time))
+    (let ((current-time (/ (+ (* 60 (nth 2 current-time))
 			      (cadr current-time))
-			   60.0)))
+			   60.0))
+	  (last-event nil)
+	  (past-events nil))
       (while (and event-list (< (cdar event-list) current-time))
 	(setq last-event (caar event-list)
-	      event-list (cdr event-list)))
-      (if immediately (rase-run-hooks last-event t))
+	      event-list (cdr event-list))
+	(push last-event past-events))
+      (or last-event
+	  (setq past-events (nreverse
+			     (mapcar 'car (rase-build-event-list -1)))
+		last-event (car past-events)))
+      (if immediately
+	  (rase-run-hooks last-event (or (cdr past-events) t)))
       (if event-list
 	  (rase-set-timer (caar event-list) (cdar event-list)
 			  (cdr event-list))
