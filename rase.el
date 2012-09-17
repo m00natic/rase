@@ -78,11 +78,22 @@ FIRST-RUN indicates if this is the very start of the rase daemon."
   (mapc (lambda (hook) (funcall hook event first-run))
 	rase-hook))
 
+(defun rase-calendar-current-date (&optional offset)
+  "Return the current date in a list (month day year).
+Optional integer OFFSET is a number of days from the current date.
+This is just a backport of the GNU/Emacs 24 version."
+  (let* ((now (decode-time))
+	 (now (list (nth 4 now) (nth 3 now) (nth 5 now))))
+    (if (zerop (or offset 0))
+	now
+      (calendar-gregorian-from-absolute
+       (+ offset (calendar-absolute-from-gregorian now))))))
+
 (defun rase-set-timer (event time &optional event-list offset)
   "Set timer for sun EVENT at TIME.
 EVENT-LIST holds the next events for the current day + OFFSET."
   (let ((time-normalize (round (* 3600 time)))
-	(date (calendar-current-date offset)))
+	(date (rase-calendar-current-date offset)))
     (setq *rase-timer*
 	  (run-at-time (encode-time (% time-normalize 60)
 				    (/ (% time-normalize 3600) 60)
@@ -109,7 +120,7 @@ EVENT-LIST holds the next events for the current day + OFFSET."
 (defun rase-build-event-list (&optional offset)
   "Build ordered list of sun events for current day + OFFSET."
   (let* ((solar-info (solar-sunrise-sunset
-		      (calendar-current-date offset)))
+		      (rase-calendar-current-date offset)))
 	 (sunrise (car solar-info))
 	 (sunset (cadr solar-info)))
     (cond ((not (or sunrise sunset))
