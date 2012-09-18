@@ -51,7 +51,7 @@
 ;;	 )))
 
 ;; ;; sign this function to be invoked on sun events
-;; (add-to-list rase-hook 'switch-themes)
+;; (add-hook 'rase-hook 'switch-themes)
 
 ;; ;; start the run-at-sun-event daemon, invoking hooks immediately
 ;; (rase-start t)
@@ -67,16 +67,10 @@ Possible values for the first argument are the symbols
 `sunrise', `midday', `sunrise' and `midnight'.
 The second argument is non-nil only the very start of rase daemon.
 If it's a list, it holds the previous events for the day."
-  :group 'rase :type 'list)
+  :group 'rase :type 'hook)
 
 (defvar *rase-timer* nil
   "Timer for the next sun event.")
-
-(defun rase-run-hooks (event &optional first-run)
-  "Run `rase-hook' functions for the current sun EVENT.
-FIRST-RUN indicates if this is the very start of the rase daemon."
-  (mapc (lambda (hook) (funcall hook event first-run))
-	rase-hook))
 
 (defun rase-calendar-current-date (&optional offset)
   "Return the current date in a list (month day year).
@@ -157,7 +151,7 @@ EVENT-LIST holds the next events for the current day + OFFSET."
   "Execute `rase-hook' for EVENT and set timer for the next sun event.
 EVENT-LIST holds the next events for the current day.
 If NO-HOOKS is given, don't run hooks for current event."
-  (or no-hooks (rase-run-hooks event))
+  (or no-hooks (run-hook-with-args 'rase-hook event))
   (if event-list
       (rase-set-timer (caar event-list) (cdar event-list)
 		      (cdr event-list))
@@ -187,7 +181,8 @@ execute hooks for the previous event."
 			     (mapcar 'car (rase-build-event-list -1)))
 		last-event (car past-events)))
       (if immediately
-	  (rase-run-hooks last-event (or (cdr past-events) t)))
+	  (run-hook-with-args 'rase-hook last-event
+			      (or (cdr past-events) t)))
       (if event-list
 	  (rase-set-timer (caar event-list) (cdar event-list)
 			  (cdr event-list))

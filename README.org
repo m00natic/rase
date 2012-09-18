@@ -43,7 +43,7 @@ calendar-longitude variables must be set to appropriate location.
 	   (enable-theme 'wombat)))))
 
 ;; sign this function to be invoked on sun events
-(add-to-list 'rase-hook 'switch-themes)
+(add-hook 'rase-hook 'switch-themes)
 
 ;; start the run-at-sun-event daemon, invoking hooks immediately
 (rase-start t)
