@@ -30,7 +30,7 @@
 ;;  '(calendar-longitude 23.3))
 
 ;; ;; create a two-argument function to be invoked at sun events, like
-;; (defun switch-themes (sun-event first-run)
+;; (defun switch-themes (sun-event &optional first-run)
 ;;   (cond ((eq sun-event 'sunrise)
 ;;	 ;; ...set lightish theme...
 ;;	 )

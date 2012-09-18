@@ -26,7 +26,7 @@ calendar-longitude variables must be set to appropriate location.
 (load-theme 'wombat t t)
 
 ;; create a two-argument function to be invoked at sun events
-(defun switch-themes (sun-event first-run)
+(defun switch-themes (sun-event &optional first-run)
   "Switch themes on sunrise and sunset."
   (if first-run				; set theme on initialization
       (cond ((memq sun-event '(sunrise midday))
