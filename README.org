@@ -1,4 +1,4 @@
-* RASE - Run At Sun Event daemon
+* rase.el - Run At Sun Event daemon
 
 This is an Emacs extension that allows user provided set of functions
 to run at some sun events - sunrise, midday (sun is at highest point
@@ -43,7 +43,7 @@ calendar-longitude variables must be set to appropriate location.
 	   (enable-theme 'wombat)))))
 
 ;; sign this function to be invoked on sun events
-(add-hook 'rase-hook 'switch-themes)
+(add-hook 'rase-functions 'switch-themes)
 
 ;; start the run-at-sun-event daemon, invoking hooks immediately
 (rase-start t)

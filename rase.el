@@ -6,14 +6,14 @@
 ;; Version  : 1.1
 ;; Keywords : solar, sunrise, sunset, midday, midnight
 
-;; RASE is free software: you can redistribute it and/or modify it
+;; rase.el is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
-;; RASE is distributed in the hope that it will be useful, but WITHOUT
-;; ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-;; or FITNESS FOR A PARTICULAR PURPOSE.
+;; rase.el is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ;; See the GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
@@ -51,7 +51,7 @@
 ;;	 )))
 
 ;; ;; sign this function to be invoked on sun events
-;; (add-hook 'rase-hook 'switch-themes)
+;; (add-hook 'rase-functions 'switch-themes)
 
 ;; ;; start the run-at-sun-event daemon, invoking hooks immediately
 ;; (rase-start t)
@@ -61,7 +61,7 @@
 (require 'solar)
 
 ;;;###autoload
-(defcustom rase-hook nil
+(defcustom rase-functions nil
   "List of two-argument functions to run at sun event.
 Possible values for the first argument are the symbols
 `sunrise', `midday', `sunrise' and `midnight'.
@@ -148,10 +148,10 @@ EVENT-LIST holds the next events for the current day + OFFSET."
 						anti-mid))))))))))
 
 (defun rase-daemon (event &optional event-list no-hooks)
-  "Execute `rase-hook' for EVENT and set timer for the next sun event.
+  "Execute `rase-functions' for EVENT and set timer for the next.
 EVENT-LIST holds the next events for the current day.
 If NO-HOOKS is given, don't run hooks for current event."
-  (or no-hooks (run-hook-with-args 'rase-hook event))
+  (or no-hooks (run-hook-with-args 'rase-functions event))
   (if event-list
       (rase-set-timer (caar event-list) (cdar event-list)
 		      (cdr event-list))
@@ -181,7 +181,7 @@ execute hooks for the previous event."
 			     (mapcar 'car (rase-build-event-list -1)))
 		last-event (car past-events)))
       (if immediately
-	  (run-hook-with-args 'rase-hook last-event
+	  (run-hook-with-args 'rase-functions last-event
 			      (or (cdr past-events) t)))
       (if event-list
 	  (rase-set-timer (caar event-list) (cdar event-list)
